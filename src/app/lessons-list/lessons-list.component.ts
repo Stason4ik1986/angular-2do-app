@@ -1,24 +1,33 @@
 import { Component, OnInit } from '@angular/core';
-import { Lesson } from '../shared/model/lesson';
-import { store, Observer } from '../events-bus-experiments/app-data';
+import { Observer } from 'rxjs/Observer';
+
 import * as _ from 'lodash';
+
+import { Lesson } from '../shared/model/lesson';
+import { store } from '../events-bus-experiments/app-data';
 
 @Component({
   selector: 'lessons-list',
   templateUrl: './lessons-list.component.html',
   styleUrls: ['./lessons-list.component.css']
 })
-export class LessonsListComponent implements Observer, OnInit {
+export class LessonsListComponent implements Observer<Lesson[]>, OnInit {
   lessons: Lesson[] = [];
 
-  constructor() { }
-
   ngOnInit() {
-    store.subscribe(this);
+    store.lessonsList$.subscribe(this);
   }
 
   next(data: Lesson[]) {
-    this.lessons = data.slice(0);
+    this.lessons = data;
+  }
+
+  error(err: any) {
+    console.log(err);
+  }
+
+  complete() {
+    console.log('Completed');
   }
 
   deleteLesson(deleted: Lesson) {

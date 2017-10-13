@@ -1,72 +1,47 @@
+import { Subject } from 'rxjs/Subject';
+import { BehaviorSubject } from 'rxjs/BehaviorSubject';
+import { Observer } from 'rxjs/Observer';
+import { Observable } from 'rxjs/Observable';
+
 import * as _ from 'lodash';
+
 import { Lesson } from '../shared/model/lesson';
 
-export interface Observer {
-  next(data: any);
-}
+class DataStore {
+  private lessonsListSubject = new BehaviorSubject([]);
 
-export interface Observable {
-  subscribe(obs: Observer);
-  unsubscribe(obs: Observer);
-}
-
-interface Subject extends Observer, Observable {
-}
-
-class SubjectImplementation implements Subject {
-  private observers: Observer[] = [];
-
-  next(data: any) {
-     this.observers.forEach(obs => obs.next(data));
-  }
-
-  subscribe(obs: Observer) {
-    this.observers.push(obs);
-  }
-
-  unsubscribe(obs: Observer) {
-     _.remove(this.observers, el => el === obs);
-  }
-}
-
-class DataStore implements Observable {
-  private lessons: Lesson[] = [];
-  private lessonsListSubject = new SubjectImplementation();
-
-  subscribe(obs: Observer) {
-    this.lessonsListSubject.subscribe(obs);
-    obs.next(this.lessons);
-  }
-
-  unsubscribe(obs: Observer) {
-    this.lessonsListSubject.unsubscribe(obs);
-  }
+  public lessonsList$: Observable<Lesson[]> = this.lessonsListSubject.asObservable();
 
   initializeLessonsList(newList: Lesson[]) {
-    this.lessons = _.cloneDeep(newList);
-    this.broadcast();
+    this.lessonsListSubject.next(_.cloneDeep(newList));
   }
 
   addLesson(newLesson: Lesson) {
-    this.lessons.push(_.cloneDeep(newLesson));
-    this.broadcast();
+    const lessons = this.cloneLessons();
+
+    lessons.push(_.cloneDeep(newLesson));
+    this.lessonsListSubject.next(lessons);
   }
 
   deleteLesson(deleted: Lesson) {
-    _.remove(this.lessons,
+    const lessons = this.cloneLessons();
+
+    _.remove(lessons,
       lesson => lesson.id === deleted.id);
-    this.broadcast();
+    this.lessonsListSubject.next(lessons);
   }
 
   toggleLessonViewed(toggled: Lesson) {
-    const lesson = _.find(this.lessons,
+    const lessons = this.cloneLessons();
+    const lesson = _.find(lessons,
       les => les.id === toggled.id);
+
     lesson.completed = !lesson.completed;
-    this.broadcast();
+    this.lessonsListSubject.next(lessons);
   }
 
-  broadcast() {
-    this.lessonsListSubject.next(_.cloneDeep(this.lessons));
+  private cloneLessons() {
+    return _.cloneDeep(this.lessonsListSubject.getValue());
   }
 }
 
